@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台本ナビ</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --border: #e2e8f0;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+  h1 { font-size: 1.5rem; text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+  h2 { font-size: 1.2rem; margin-top: 20px; }
+  .form-group { margin-bottom: 20px; }
+  label { display: block; font-weight: bold; margin-bottom: 5px; }
+  input[type="text"], input[type="file"], input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+  button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { background-color: #94a3b8; cursor: not-allowed; }
+  
+  /* タブUI */
+  .tabs { display: flex; margin-top: 30px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: #f1f5f9;
+    margin-right: 5px;
+  }
+  .tab.active { background: white; border-color: var(--border); font-weight: bold; border-bottom: 1px solid white; margin-bottom: -1px; }
+  .tab-content { display: none; padding: 20px; border: 1px solid var(--border); border-top: none; background: white; }
+  .tab-content.active { display: block; }
+
+  /* 出力エリアのデザイン */
+  .output-area { white-space: pre-wrap; }
+  .output-area h3 { color: var(--primary); border-bottom: 1px dashed var(--primary); padding-bottom: 5px; margin-top: 25px; }
+  .output-area strong { background: linear-gradient(transparent 60%, #fef08a 60%); padding: 0 2px; }
+  .output-area blockquote { border-left: 4px solid var(--primary); background: #f0fdf4; padding: 10px; margin: 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th, td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+  th { background-color: #f8fafc; }
+
+  /* Q&AチャットUI */
+  .chat-box { max-height: 400px; overflow-y: auto; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa; }
+  .message { margin-bottom: 15px; padding: 10px; border-radius: 8px; max-width: 85%; }
+  .msg-user { background: var(--primary); color: white; margin-left: auto; border-bottom-right-radius: 0; }
+  .msg-ai { background: white; border: 1px solid var(--border); margin-right: auto; border-bottom-left-radius: 0; }
+  .qa-input-area { display: flex; gap: 10px; }
+  .qa-input-area input { flex: 1; }
+  .qa-input-area button { width: auto; }
+  
+  .hidden { display: none; }
+  .footer { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #64748b; }
+</style>
+</head>
+<body>
+
+<div class="container" id="api-setup-screen">
+  <h1>⚙️ 初期設定</h1>
+  <div class="form-group">
+    <label>共有された共通APIキーを入力してください</label>
+    <input type="password" id="api-key" placeholder="AIzaSy...">
+    <p style="font-size:0.8rem; color:#64748b;">※キーはブラウザにのみ保存され、外部には送信されません。</p>
+  </div>
+  <button onclick="saveApiKey()">保存して利用開始</button>
+</div>
+
+<div class="container hidden" id="main-app-screen">
+  <h1>台本ナビ</h1>
+  
+  <div class="form-group">
+    <label>1. 台本データ（CSV）を選択</label>
+    <input type="file" id="csv-file" accept=".csv">
+  </div>
+  
+  <div class="form-group">
+    <label>2. リスト名</label>
+    <input type="text" id="target-list" placeholder="例: 商業施設設計＠関東 など">
+  </div>
+  
+  <button id="generate-btn" onclick="generateScript()">解説シートを作成する</button>
+  <div id="loading" style="display:none; text-align:center; margin-top:15px;">⏳ AIが情報を分析・補完中...</div>
+
+  <div class="tabs hidden" id="result-tabs">
+    <div class="tab active" onclick="switchTab('sheet')">📄 解説シート</div>
+    <div class="tab" onclick="switchTab('qa')">❓ ナビへのQ&A</div>
+  </div>
+
+  <div id="tab-sheet" class="tab-content hidden">
+    <div id="output-sheet" class="output-area"></div>
+  </div>
+
+  <div id="tab-qa" class="tab-content hidden">
+    <div class="chat-box" id="chat-history"></div>
+    <div class="qa-input-area">
+      <input type="text" id="qa-input" placeholder="商材についてナビに質問する...">
+      <button onclick="askQuestion()">送信</button>
+    </div>
+  </div>
+
+  <div class="footer">台本ナビ © 2026 Treaning Director Assistant</div>
+</div>
+
+<script>
+  let currentCsvData = "";
+  let chatContext = [];
+
+  // APIキーの管理
+  window.onload = function() {
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+      document.getElementById('api-setup-screen').classList.add('hidden');
+      document.getElementById('main-app-screen').classList.remove('hidden');
+    }
+  };
+
+  function saveApiKey() {
+    const key = document.getElementById('api-key').value.trim();
+    if (!key) {
+      alert("APIキーを入力してください。");
+      return;
+    }
+    localStorage.setItem('gemini_api_key', key);
+    document.getElementById('api-setup-screen').classList.add('hidden');
+    document.getElementById('main-app-screen').classList.remove('hidden');
+  }
+
+  function getApiKey() {
+    const key = localStorage.getItem('gemini_api_key');
+    if (!key) {
+      alert("APIキーが設定されていません。画面をリロードして設定してください。");
+    }
+    return key;
+  }
+
+  // ファイル読み込み処理
+  document.getElementById('csv-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      currentCsvData = e.target.result;
+    };
+    reader.readAsText(file);
+  });
+
+  // タブ切り替え
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active', 'hidden'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.remove('hidden');
+    document.getElementById('tab-' + tabId).classList.add('active');
+  }
+
+  // Markdown簡易変換
+  function parseMarkdown(text) {
+    let html = text.replace(/### (.*?)\n/g, '<h3>$1</h3>\n');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/> (.*?)\n/g, '<blockquote>$1</blockquote>\n');
+    return html;
+  }
+
+  // 生成処理
+  async function generateScript() {
+    if (!currentCsvData) {
+      alert("CSVファイルを選択してください。");
+      return;
+    }
+    const target = document.getElementById('target-list').value;
+    if (!target) {
+      alert("リスト名を入力してください。");
+      return;
+    }
+
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    document.getElementById('generate-btn').disabled = true;
+    document.getElementById('loading').style.display = 'block';
+    
+    const prompt = `
+# 役割と目的
+あなたは優秀なテレアポのディレクター（SV）「台本ナビ」です。提供された「会社名・商材情報が記載されたCSVファイル」と、架電先の「リスト名（ターゲット属性）」を分析し、架電者が商材の本質を即座に理解して自信を持って案内できる「噛み砕いた解説＆切り返しトーク」を出力構成通りに一発で作成してください。架電者はその業界に詳しくない主婦が多いのでその点を踏まえて対応してください。
+
+■ 追加の厳守ルール
+・HP情報とCSV（台本）情報の扱いに関する徹底分離：
+  【インプット（商材理解）】：ウェブ検索から得た情報は、架電者が「商材の本質を深く理解するための解説（解説シートの項目1や2）」としてのみ参考にし、補完情報として活用してください。
+  【アウトプット（切り返しトーク）】：項目3の「切り返しトーク（セリフ）」を作成する際は、HPにしか載っていない独自の強みやキーワードを勝手に盛り込むのは【完全NG】とします。切り返しトークは、あくまで提供されたCSV（台本）内にある情報・文脈・表現のみをベースに、直感的で短いフレーズに最適化して作成してください。
+・アポ時間の打診を行う際は、必ず「最低でも20分（例: 20分ほど）」で案内してください。「10分〜15分」などの提案は一切禁止です。
+・前置きの挨拶や「作成しました」などの文章は一切不要です。いきなり以下の【出力構成】の「1. 1. 💡 何を勧める？メリットは？」から出力を開始してください。
+
+【インプットデータ】
+ターゲットリスト属性: ${target}
+CSV内容:
+${currentCsvData}
+
+【出力構成】
+### 1. 💡 何を勧める？メリットは？
+無形商材や複雑なサービスでもイメージできるよう、極めて短く、シンプルに解説してください（100文字以内）。
+※絵文字とテキスト（矢印 → などの記号）を組み合わせたシンプルな関係図、またはMarkdownのテーブル機能を使って、商材の構造を視覚的にも表現してください。
+
+### 2. ⏰ なぜ「今」？
+「後回しにすると損をするかも」「今聞いておかないとマズイかも」と緊急性を感じさせる理由を、端的に、1〜2文で提示してください（200文字以内）。
+
+### 3．🛡️ 切返し時に使える訴求ポイント
+「興味ない」「間に合っている」「他社を使っている」などの拒否への対応を3パターン作成。
+・【訴求ポイント】：同調しながらも損失回避バイアスを用い、現状維持のリスクをそれとなく提示しそれに対するメリットを提示（各120字程度）。
+    `;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          tools: [{ googleSearch: {} }] // ウェブ検索常時ON
+        })
+      });
+
+      const data = await response.json();
+      const resultText = data.candidates[0].content.parts[0].text;
+      
+      document.getElementById('output-sheet').innerHTML = parseMarkdown(resultText);
+      
+      // UI切り替え
+      document.getElementById('result-tabs').classList.remove('hidden');
+      document.getElementById('tab-sheet').classList.remove('hidden');
+      document.getElementById('tab-sheet').classList.add('active');
+      
+      // Q&Aコンテキストの初期化
+      chatContext = [
+        { role: "user", parts: [{ text: "以下の商材情報を把握してください。\n" + currentCsvData }] },
+        { role: "model", parts: [{ text: "把握しました。質問にシンプルに答えます。" }] }
+      ];
+      document.getElementById('chat-history').innerHTML = "";
+
+    } catch (error) {
+      alert("エラーが発生しました: " + error.message);
+    } finally {
+      document.getElementById('generate-btn').disabled = false;
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  // Q&A処理
+  async function askQuestion() {
+    const inputField = document.getElementById('qa-input');
+    const question = inputField.value.trim();
+    if (!question) return;
+
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    // UIにユーザーの質問を追加
+    const chatBox = document.getElementById('chat-history');
+    chatBox.innerHTML += `<div class="message msg-user">${question}</div>`;
+    inputField.value = "";
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // コンテキストに追加
+    chatContext.push({ role: "user", parts: [{ text: question }] });
+
+    const systemInstruction = "あなたはナビです。挨拶、前置き、結びの言葉（ご質問ありがとうございます、応援しています等）は一切不要です。聞かれたことに対して、ダイレクトかつ主婦にも分かりやすくに回答してください。";
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents: chatContext,
+          tools: [{ googleSearch: {} }] // Q&Aでもウェブ検索常時ON
+        })
+      });
+
+      const data = await response.json();
+      const answer = data.candidates[0].content.parts[0].text;
+
+      // コンテキストに追加
+      chatContext.push({ role: "model", parts: [{ text: answer }] });
+
+      // UIにAIの回答を追加
+      chatBox.innerHTML += `<div class="message msg-ai">${parseMarkdown(answer)}</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+    } catch (error) {
+      chatBox.innerHTML += `<div class="message msg-ai" style="color:red;">エラー: ${error.message}</div>`;
+    }
+  }
+</script>
+</body>
+</html>
