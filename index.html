@@ -68,7 +68,10 @@
 
   .output-area { white-space: pre-wrap; }
   .output-area h3 { color: var(--primary); border-bottom: 1px dashed var(--primary); padding-bottom: 5px; margin-top: 25px; }
-  .output-area strong { background: linear-gradient(transparent 60%, #fef08a 60%); padding: 0 2px; }
+ .output-area strong {
+  font-weight: 700;
+  color: var(--primary); /* 背景ハイライトをやめて色だけで強調 */
+}
   .output-area blockquote { border-left: 4px solid var(--primary); background: #f0fdf4; padding: 10px; margin: 0; border-radius: 4px; }
   .output-area ul { padding-left: 20px; margin: 10px 0; }
   .output-area li { margin-bottom: 6px; }
@@ -208,10 +211,12 @@
     document.getElementById('tab-' + tabId).classList.add('active');
   }
 
-  function parseMarkdown(text) {
+function parseMarkdown(text) {
     let html = text;
     // 見出しと太字の変換
     html = html.replace(/### (.*?)\n/g, '<h3>$1</h3>\n');
+    // 25文字以上続く長い強調はAIの暴走とみなし、強調を解除する
+    html = html.replace(/\*\*([^*\n]{25,})\*\*/g, '$1');
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
     html = html.replace(/> (.*?)\n/g, '<blockquote>$1</blockquote>\n');
