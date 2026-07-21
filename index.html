@@ -52,7 +52,6 @@
   button:hover { opacity: 0.9; }
   button:disabled { background-color: #94a3b8; cursor: not-allowed; }
   
-  /* タブUI */
   .tabs { display: flex; margin-top: 30px; border-bottom: 1px solid var(--border); }
   .tab {
     padding: 10px 20px;
@@ -67,7 +66,6 @@
   .tab-content { display: none; padding: 20px; border: 1px solid var(--border); border-top: none; background: white; min-height: 300px; }
   .tab-content.active { display: block; }
 
-  /* 出力エリアのデザイン */
   .output-area { white-space: pre-wrap; }
   .output-area h3 { color: var(--primary); border-bottom: 1px dashed var(--primary); padding-bottom: 5px; margin-top: 25px; }
   .output-area strong { background: linear-gradient(transparent 60%, #fef08a 60%); padding: 0 2px; }
@@ -76,17 +74,14 @@
   th, td { border: 1px solid var(--border); padding: 8px; text-align: left; }
   th { background-color: #f8fafc; }
 
-  /* プレースホルダー */
   .placeholder { text-align: center; color: #94a3b8; padding: 50px 20px; }
   .placeholder-icon { font-size: 3rem; margin-bottom: 10px; display: block; }
 
-  /* Q&AチャットUI */
   .chat-box { height: 350px; overflow-y: auto; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa; }
   .message { margin-bottom: 15px; padding: 10px; border-radius: 8px; max-width: 85%; }
   .msg-user { background: var(--primary); color: white; margin-left: auto; border-bottom-right-radius: 0; }
   .msg-ai { background: white; border: 1px solid var(--border); margin-right: auto; border-bottom-left-radius: 0; }
   
-  /* サジェストチップ */
   .suggest-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
   .chip { background: #e0e7ff; color: var(--primary); border: 1px solid #c7d2fe; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: normal; width: auto; }
   .chip:hover { background: #c7d2fe; }
@@ -127,7 +122,6 @@
   <button id="generate-btn" onclick="generateScript()">解説シートを作成する</button>
   <div id="loading" style="display:none; text-align:center; margin-top:15px;">⏳ AIが情報を分析・補完中...</div>
 
-  <!-- タブは常時表示 -->
   <div class="tabs" id="result-tabs">
     <div class="tab active" onclick="switchTab('sheet')">📄 解説シート</div>
     <div class="tab" onclick="switchTab('qa')">❓ ナビへのQ&A</div>
@@ -211,6 +205,7 @@
 
   function parseMarkdown(text) {
     let html = text.replace(/### (.*?)\n/g, '<h3>$1</h3>\n');
+    html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
     html = html.replace(/> (.*?)\n/g, '<blockquote>$1</blockquote>\n');
     return html;
   }
@@ -249,7 +244,7 @@
 
 1. CSVからの情報抽出: 提供されたCSVファイルから「会社名」「事業内容」「商材情報・強み」、および「トークスクリプト（プロット・切り返し例など）」の主要な情報を抽出・把握してください。
 2. 企業情報のウェブ検索補完: 抽出した「会社名」や「商材名」をもとにウェブ検索を行い、公式情報や信頼できるソースから最新の事業内容や商材の特徴、強みなどの周辺情報を収集し、CSVの情報を補完してください。
-※URLへ直接アクセスしてエラーになるのを防ぐため、必ず「検索キーワード」を用いて情報を集めてください。
+【注意】URLへ直接アクセスしてエラーになるのを防ぐため、必ず「検索キーワード」を用いて情報を集めてください。
 3.資料の生成: 抽出・補完した情報と、ユーザーから提供された「リスト名（ターゲット属性）」を掛け合わせ、架電者向けに最適化された内容で以下の【出力構成】に従って出力してください。
 
 ■ 追加の厳守ルール
@@ -258,6 +253,7 @@ HP情報とCSV（台本）情報の扱いに関する徹底分離：
 ・【インプット（商材理解）】：HPから得た情報は、架電者が「商材の本質を深く理解するための解説（解説シートの項目1や2）」としてのみ参考にし、補完情報として活用してください。
 ・【アウトプット（切り返しトーク）】：項目3の「切り返しトーク（セリフ）」を作成する際は、HPにしか載っていない独自の強みやキーワードを勝手に盛り込むのは【完全NG】とします。切り返しトークは、あくまで提供されたCSV（台本）内にある情報・文脈・表現のみをベースに、直感的で短いフレーズに最適化して作成してください。
 ・アポイント時間の打診を行う際は、必ず「最低でも20分（例: 20分ほど）」で案内してください。「10分〜15分」などの提案は一切禁止です。
+・文字の強調にはアンダースコア2つ（__強調したい文字__）を使用してください。
 【重要】
 前置きの挨拶や「作成しました」などの文章は一切不要です。いきなり以下の【出力構成】の「1. 💡 何を勧めたいの？」から出力を開始してください。
 
@@ -266,7 +262,7 @@ HP情報とCSV（台本）情報の扱いに関する徹底分離：
 ### 1. 💡 何を勧めたいの？
 【文字数目安（テキスト部分）：100文字以内】
 無形商材や複雑なサービスでもイメージできるよう、極めて短く、シンプルに解説してください。
-※架電者が商材の仕組みや顧客が抱えているであろう一般的な課題点と解決策及びメリットを直感的に理解できるよう、絵文字とテキスト（矢印 → などの記号）を組み合わせたシンプルな関係図、またはMarkdownのテーブル機能を使って、商材の構造を視覚的にも表現してください。
+架電者が商材の仕組みや顧客が抱えているであろう一般的な課題点と解決策及びメリットを直感的に理解できるよう、絵文字とテキスト（矢印 → などの記号）を組み合わせたシンプルな関係図、またはMarkdownのテーブル機能を使って、商材の構造を視覚的にも表現してください。
 
 ### 2. ⏰ なぜ「今」？
 【文字数目安：200文字以内】
@@ -339,7 +335,7 @@ ${currentCsvData}
 
     chatContext.push({ role: "user", parts: [{ text: question }] });
 
-    const systemInstruction = "あなたはナビです。挨拶、前置き、結びの言葉（ご質問ありがとうございます等）は一切不要です。聞かれたことに対して、ダイレクトかつ極限までシンプルに回答してください。";
+    const systemInstruction = "あなたはナビです。挨拶、前置き、結びの言葉は一切不要です。聞かれたことに対して、ダイレクトかつ極限までシンプルに回答してください。";
 
     try {
       const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\${apiKey}\`, {
