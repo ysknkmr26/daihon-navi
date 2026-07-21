@@ -28,7 +28,6 @@
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   }
   h1 { font-size: 1.5rem; text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-  h2 { font-size: 1.2rem; margin-top: 20px; }
   .form-group { margin-bottom: 20px; }
   label { display: block; font-weight: bold; margin-bottom: 5px; }
   input[type="text"], input[type="file"], input[type="password"] {
@@ -48,6 +47,7 @@
     cursor: pointer;
     width: 100%;
     font-weight: bold;
+    transition: opacity 0.2s;
   }
   button:hover { opacity: 0.9; }
   button:disabled { background-color: #94a3b8; cursor: not-allowed; }
@@ -64,7 +64,7 @@
     margin-right: 5px;
   }
   .tab.active { background: white; border-color: var(--border); font-weight: bold; border-bottom: 1px solid white; margin-bottom: -1px; }
-  .tab-content { display: none; padding: 20px; border: 1px solid var(--border); border-top: none; background: white; }
+  .tab-content { display: none; padding: 20px; border: 1px solid var(--border); border-top: none; background: white; min-height: 300px; }
   .tab-content.active { display: block; }
 
   /* 出力エリアのデザイン */
@@ -76,16 +76,26 @@
   th, td { border: 1px solid var(--border); padding: 8px; text-align: left; }
   th { background-color: #f8fafc; }
 
+  /* プレースホルダー */
+  .placeholder { text-align: center; color: #94a3b8; padding: 50px 20px; }
+  .placeholder-icon { font-size: 3rem; margin-bottom: 10px; display: block; }
+
   /* Q&AチャットUI */
-  .chat-box { max-height: 400px; overflow-y: auto; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa; }
+  .chat-box { height: 350px; overflow-y: auto; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa; }
   .message { margin-bottom: 15px; padding: 10px; border-radius: 8px; max-width: 85%; }
   .msg-user { background: var(--primary); color: white; margin-left: auto; border-bottom-right-radius: 0; }
   .msg-ai { background: white; border: 1px solid var(--border); margin-right: auto; border-bottom-left-radius: 0; }
+  
+  /* サジェストチップ */
+  .suggest-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+  .chip { background: #e0e7ff; color: var(--primary); border: 1px solid #c7d2fe; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: normal; width: auto; }
+  .chip:hover { background: #c7d2fe; }
+
   .qa-input-area { display: flex; gap: 10px; }
   .qa-input-area input { flex: 1; }
   .qa-input-area button { width: auto; }
   
-  .hidden { display: none; }
+  .hidden { display: none !important; }
   .footer { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #64748b; }
 </style>
 </head>
@@ -94,7 +104,7 @@
 <div class="container" id="api-setup-screen">
   <h1>⚙️ 初期設定</h1>
   <div class="form-group">
-    <label>共有された共通APIキーを入力してください</label>
+    <label>共通APIキーを入力してください</label>
     <input type="password" id="api-key" placeholder="AIzaSy...">
     <p style="font-size:0.8rem; color:#64748b;">※キーはブラウザにのみ保存され、外部には送信されません。</p>
   </div>
@@ -110,24 +120,37 @@
   </div>
   
   <div class="form-group">
-    <label>2. リスト名</label>
-    <input type="text" id="target-list" placeholder="例: 商業施設設計＠関東 など">
+    <label>2. 架電先のリスト名（ターゲット属性）</label>
+    <input type="text" id="target-list" placeholder="例: 都内のIT系中小企業、飲食店オーナー など">
   </div>
   
   <button id="generate-btn" onclick="generateScript()">解説シートを作成する</button>
   <div id="loading" style="display:none; text-align:center; margin-top:15px;">⏳ AIが情報を分析・補完中...</div>
 
-  <div class="tabs hidden" id="result-tabs">
+  <!-- タブは常時表示 -->
+  <div class="tabs" id="result-tabs">
     <div class="tab active" onclick="switchTab('sheet')">📄 解説シート</div>
     <div class="tab" onclick="switchTab('qa')">❓ ナビへのQ&A</div>
   </div>
 
-  <div id="tab-sheet" class="tab-content hidden">
-    <div id="output-sheet" class="output-area"></div>
+  <div id="tab-sheet" class="tab-content active">
+    <div id="placeholder-sheet" class="placeholder">
+      <span class="placeholder-icon">📋</span>
+      CSVとターゲットを入力して「作成」を押すと、<br>ここに解説シートが表示されます。
+    </div>
+    <div id="output-sheet" class="output-area hidden"></div>
   </div>
 
-  <div id="tab-qa" class="tab-content hidden">
-    <div class="chat-box" id="chat-history"></div>
+  <div id="tab-qa" class="tab-content">
+    <div class="suggest-chips">
+      <button class="chip" onclick="sendSuggest('もっと噛み砕いて言うと？')">もっと噛み砕いて言うと？</button>
+      <button class="chip" onclick="sendSuggest('具体的な使用シーンは？')">具体的な使用シーンは？</button>
+      <button class="chip" onclick="sendSuggest('日常に例えて言うならば？')">日常に例えて言うならば？</button>
+      <button class="chip" onclick="sendSuggest('出てくる専門用語を分かりやすくして')">専門用語を分かりやすくして</button>
+    </div>
+    <div class="chat-box" id="chat-history">
+      <div class="message msg-ai">商材についての質問にお答えします。解説シート作成後にご質問ください。</div>
+    </div>
     <div class="qa-input-area">
       <input type="text" id="qa-input" placeholder="商材についてナビに質問する...">
       <button onclick="askQuestion()">送信</button>
@@ -141,7 +164,6 @@
   let currentCsvData = "";
   let chatContext = [];
 
-  // APIキーの管理
   window.onload = function() {
     const savedKey = localStorage.getItem('gemini_api_key');
     if (savedKey) {
@@ -169,7 +191,6 @@
     return key;
   }
 
-  // ファイル読み込み処理
   document.getElementById('csv-file').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -180,26 +201,20 @@
     reader.readAsText(file);
   });
 
-  // タブ切り替え
   function switchTab(tabId) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active', 'hidden'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
     event.target.classList.add('active');
-    document.getElementById('tab-' + tabId).classList.remove('hidden');
     document.getElementById('tab-' + tabId).classList.add('active');
   }
 
-  // Markdown簡易変換
   function parseMarkdown(text) {
     let html = text.replace(/### (.*?)\n/g, '<h3>$1</h3>\n');
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/> (.*?)\n/g, '<blockquote>$1</blockquote>\n');
     return html;
   }
 
-  // 生成処理
   async function generateScript() {
     if (!currentCsvData) {
       alert("CSVファイルを選択してください。");
@@ -207,7 +222,7 @@
     }
     const target = document.getElementById('target-list').value;
     if (!target) {
-      alert("リスト名を入力してください。");
+      alert("ターゲット属性を入力してください。");
       return;
     }
 
@@ -216,43 +231,64 @@
 
     document.getElementById('generate-btn').disabled = true;
     document.getElementById('loading').style.display = 'block';
+    document.getElementById('placeholder-sheet').classList.add('hidden');
+    document.getElementById('output-sheet').classList.add('hidden');
     
     const prompt = `
 # 役割と目的
 あなたは優秀なテレアポのディレクター（SV）「台本ナビ」です。提供された「会社名・商材情報が記載されたCSVファイル」と、架電先の「リスト名（ターゲット属性）」を分析し、架電者が商材の本質を即座に理解して自信を持って案内できる「噛み砕いた解説＆切り返しトーク」を出力構成通りに一発で作成してください。架電者はその業界に詳しくない主婦が多いのでその点を踏まえて対応してください。
 
+指示 (Instructions)
+
+あなたは優秀なテレアポのディレクター（SV）です。
+ユーザーからは、会社名、事業内容、商材情報、強み、マーケティングの目的、そしてトークスクリプトなどが記載された「CSVファイル」と、架電先の「リスト名（ターゲット属性）」が提供されます。
+
+以下のステップに従って、架電者が商材の本質を深く理解し、自信を持って案内できるようになるための「かんたん解説シート」を作成してください。
+
+実行ステップ
+
+1. CSVからの情報抽出: 提供されたCSVファイルから「会社名」「事業内容」「商材情報・強み」、および「トークスクリプト（プロット・切り返し例など）」の主要な情報を抽出・把握してください。
+2. 企業情報のウェブ検索補完: 抽出した「会社名」や「商材名」をもとにウェブ検索を行い、公式情報や信頼できるソースから最新の事業内容や商材の特徴、強みなどの周辺情報を収集し、CSVの情報を補完してください。
+※URLへ直接アクセスしてエラーになるのを防ぐため、必ず「検索キーワード」を用いて情報を集めてください。
+3.資料の生成: 抽出・補完した情報と、ユーザーから提供された「リスト名（ターゲット属性）」を掛け合わせ、架電者向けに最適化された内容で以下の【出力構成】に従って出力してください。
+
 ■ 追加の厳守ルール
-・HP情報とCSV（台本）情報の扱いに関する徹底分離：
-  【インプット（商材理解）】：ウェブ検索から得た情報は、架電者が「商材の本質を深く理解するための解説（解説シートの項目1や2）」としてのみ参考にし、補完情報として活用してください。
-  【アウトプット（切り返しトーク）】：項目3の「切り返しトーク（セリフ）」を作成する際は、HPにしか載っていない独自の強みやキーワードを勝手に盛り込むのは【完全NG】とします。切り返しトークは、あくまで提供されたCSV（台本）内にある情報・文脈・表現のみをベースに、直感的で短いフレーズに最適化して作成してください。
-・アポ時間の打診を行う際は、必ず「最低でも20分（例: 20分ほど）」で案内してください。「10分〜15分」などの提案は一切禁止です。
-・前置きの挨拶や「作成しました」などの文章は一切不要です。いきなり以下の【出力構成】の「1. 1. 💡 何を勧める？メリットは？」から出力を開始してください。
+
+HP情報とCSV（台本）情報の扱いに関する徹底分離：
+・【インプット（商材理解）】：HPから得た情報は、架電者が「商材の本質を深く理解するための解説（解説シートの項目1や2）」としてのみ参考にし、補完情報として活用してください。
+・【アウトプット（切り返しトーク）】：項目3の「切り返しトーク（セリフ）」を作成する際は、HPにしか載っていない独自の強みやキーワードを勝手に盛り込むのは【完全NG】とします。切り返しトークは、あくまで提供されたCSV（台本）内にある情報・文脈・表現のみをベースに、直感的で短いフレーズに最適化して作成してください。
+・アポイント時間の打診を行う際は、必ず「最低でも20分（例: 20分ほど）」で案内してください。「10分〜15分」などの提案は一切禁止です。
+【重要】
+前置きの挨拶や「作成しました」などの文章は一切不要です。いきなり以下の【出力構成】の「1. 💡 何を勧めたいの？」から出力を開始してください。
+
+出力構成
+
+### 1. 💡 何を勧めたいの？
+【文字数目安（テキスト部分）：100文字以内】
+無形商材や複雑なサービスでもイメージできるよう、極めて短く、シンプルに解説してください。
+※架電者が商材の仕組みや顧客が抱えているであろう一般的な課題点と解決策及びメリットを直感的に理解できるよう、絵文字とテキスト（矢印 → などの記号）を組み合わせたシンプルな関係図、またはMarkdownのテーブル機能を使って、商材の構造を視覚的にも表現してください。
+
+### 2. ⏰ なぜ「今」？
+【文字数目安：200文字以内】
+「後回しにすると損をするかも」「今聞いておかないとマズイかも」と緊急性を感じさせる理由を、端的に、1〜2文で提示してください。
+
+### 3. 🛡️ 切返し時に使える訴求ポイント
+「興味ない」「間に合っている」「他社を使っている」などの拒否への対応を3パターン作成。
+・【訴求ポイント】：同調しながらも損失回避バイアスを用い、現状維持のリスクをそれとなく提示しそれに対するメリットを提示。100字程度。
 
 【インプットデータ】
 ターゲットリスト属性: ${target}
 CSV内容:
 ${currentCsvData}
-
-【出力構成】
-### 1. 💡 何を勧める？メリットは？
-無形商材や複雑なサービスでもイメージできるよう、極めて短く、シンプルに解説してください（100文字以内）。
-※絵文字とテキスト（矢印 → などの記号）を組み合わせたシンプルな関係図、またはMarkdownのテーブル機能を使って、商材の構造を視覚的にも表現してください。
-
-### 2. ⏰ なぜ「今」？
-「後回しにすると損をするかも」「今聞いておかないとマズイかも」と緊急性を感じさせる理由を、端的に、1〜2文で提示してください（200文字以内）。
-
-### 3．🛡️ 切返し時に使える訴求ポイント
-「興味ない」「間に合っている」「他社を使っている」などの拒否への対応を3パターン作成。
-・【訴求ポイント】：同調しながらも損失回避バイアスを用い、現状維持のリスクをそれとなく提示しそれに対するメリットを提示（各120字程度）。
     `;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\${apiKey}\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ googleSearch: {} }] // ウェブ検索常時ON
+          tools: [{ googleSearch: {} }]
         })
       });
 
@@ -260,70 +296,71 @@ ${currentCsvData}
       const resultText = data.candidates[0].content.parts[0].text;
       
       document.getElementById('output-sheet').innerHTML = parseMarkdown(resultText);
+      document.getElementById('output-sheet').classList.remove('hidden');
       
-      // UI切り替え
-      document.getElementById('result-tabs').classList.remove('hidden');
-      document.getElementById('tab-sheet').classList.remove('hidden');
-      document.getElementById('tab-sheet').classList.add('active');
-      
-      // Q&Aコンテキストの初期化
       chatContext = [
         { role: "user", parts: [{ text: "以下の商材情報を把握してください。\n" + currentCsvData }] },
         { role: "model", parts: [{ text: "把握しました。質問にシンプルに答えます。" }] }
       ];
-      document.getElementById('chat-history').innerHTML = "";
+      
+      document.getElementById('chat-history').innerHTML = '<div class="message msg-ai">商材情報の読み込みが完了しました。何でも質問してください。</div>';
 
     } catch (error) {
       alert("エラーが発生しました: " + error.message);
+      document.getElementById('placeholder-sheet').classList.remove('hidden');
     } finally {
       document.getElementById('generate-btn').disabled = false;
       document.getElementById('loading').style.display = 'none';
     }
   }
 
-  // Q&A処理
+  function sendSuggest(text) {
+    document.getElementById('qa-input').value = text;
+    askQuestion();
+  }
+
   async function askQuestion() {
     const inputField = document.getElementById('qa-input');
     const question = inputField.value.trim();
     if (!question) return;
 
+    if (!currentCsvData) {
+      alert("先にCSVを読み込み、解説シートを作成してください。");
+      return;
+    }
+
     const apiKey = getApiKey();
     if (!apiKey) return;
 
-    // UIにユーザーの質問を追加
     const chatBox = document.getElementById('chat-history');
-    chatBox.innerHTML += `<div class="message msg-user">${question}</div>`;
+    chatBox.innerHTML += \`<div class="message msg-user">\${question}</div>\`;
     inputField.value = "";
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // コンテキストに追加
     chatContext.push({ role: "user", parts: [{ text: question }] });
 
-    const systemInstruction = "あなたはナビです。挨拶、前置き、結びの言葉（ご質問ありがとうございます、応援しています等）は一切不要です。聞かれたことに対して、ダイレクトかつ主婦にも分かりやすくに回答してください。";
+    const systemInstruction = "あなたはナビです。挨拶、前置き、結びの言葉（ご質問ありがとうございます等）は一切不要です。聞かれたことに対して、ダイレクトかつ極限までシンプルに回答してください。";
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\${apiKey}\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemInstruction }] },
           contents: chatContext,
-          tools: [{ googleSearch: {} }] // Q&Aでもウェブ検索常時ON
+          tools: [{ googleSearch: {} }]
         })
       });
 
       const data = await response.json();
       const answer = data.candidates[0].content.parts[0].text;
 
-      // コンテキストに追加
       chatContext.push({ role: "model", parts: [{ text: answer }] });
-
-      // UIにAIの回答を追加
-      chatBox.innerHTML += `<div class="message msg-ai">${parseMarkdown(answer)}</div>`;
+      chatBox.innerHTML += \`<div class="message msg-ai">\${parseMarkdown(answer)}</div>\`;
       chatBox.scrollTop = chatBox.scrollHeight;
 
     } catch (error) {
-      chatBox.innerHTML += `<div class="message msg-ai" style="color:red;">エラー: ${error.message}</div>`;
+      chatBox.innerHTML += \`<div class="message msg-ai" style="color:red;">エラー: \${error.message}</div>\`;
     }
   }
 </script>
