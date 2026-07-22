@@ -268,7 +268,7 @@
         🔑 Gemini API キー
         <small>※ソースコード公開時は必須です。安全のためブラウザ上でのみ保持されます。</small>
       </label>
-      <input type="password" id="apiKeyInput" placeholder="AI Studioで取得したAPIキーを入力してください (例: AIzaSy...)">
+      <input type="password" id="apiKeyInput" placeholder="AI Studioで取得したAPIキーを入力してください (例: AIzaSy...)" onchange="saveApiKey()">
     </div>
 
     <div class="form-group">
@@ -328,9 +328,25 @@
   </div>
 
   <script>
-    // Q&Aのコンテキストとして利用するため、生成された解説シートを保持
     let generatedScriptContent = "";
     let currentCsvData = "";
+
+    // ページロード時にローカルストレージからAPIキーを読み込む
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedApiKey = localStorage.getItem('gemini_api_key');
+      if (savedApiKey) {
+        document.getElementById('apiKeyInput').value = savedApiKey;
+      }
+    });
+
+    function saveApiKey() {
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+      if (apiKey) {
+        localStorage.setItem('gemini_api_key', apiKey);
+      } else {
+        localStorage.removeItem('gemini_api_key');
+      }
+    }
 
     function showError(message) {
       const errorDiv = document.getElementById('errorMessage');
@@ -339,20 +355,20 @@
       setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
     }
 
-    // GASの代わりとなる、フロントエンドからの直接APIコール関数
     async function callGeminiAPI(systemPrompt, userPrompt) {
-      // 画面からAPIキーを取得（空の場合はCanvas環境提供のキーが利用される仕組み）
       const userApiKey = document.getElementById('apiKeyInput').value.trim();
       const apiKey = userApiKey || ""; 
       
-      // 注意: Gemini APIのモデル名は gemini-3.5-flash ではなく、提供されている最新のフラッシュモデルを指定します。
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+      if (!apiKey) {
+        throw new Error('Gemini API キーを入力してください。');
+      }
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
       const payload = {
         contents: [{
           parts: [{ text: systemPrompt + "\n\n" + userPrompt }]
         }],
-        // ★重要: ここがGASで失敗していた原因です。"googleSearch" ではなく "google_search" が正解です。
         tools: [{ "google_search": {} }] 
       };
 
@@ -381,6 +397,7 @@
     }
 
     function processRequest() {
+      saveApiKey();
       const fileInput = document.getElementById('csvFile');
       const listName = document.getElementById('listName').value;
       const output = document.getElementById('output');
@@ -409,7 +426,6 @@
       reader.onload = async function(e) {
         currentCsvData = e.target.result;
         
-        // UIの初期化（ロード状態）
         emptyState.style.display = 'none';
         resultContainer.style.display = 'none';
         output.innerHTML = '';
@@ -417,7 +433,6 @@
         submitBtn.disabled = true;
         submitBtn.textContent = '作成中...';
 
-        // チャット履歴のリセット
         chatMessages.innerHTML = `
           <div class="message bot">
             <div class="message-bubble">
@@ -426,7 +441,6 @@
           </div>
         `;
 
-        // 提示されたプロンプトの構成
         const systemPrompt = `
 あなたは優秀なテレアポのディレクター（SV）「台本ナビ」です。
 提供された「会社名・商材情報と台本が記載されたCSVファイル」と、架電先の「リスト名（ターゲット属性）」を分析し、主婦の初心者の架電者が商材の本質を即座に理解して自信を持って案内できる「噛み砕いた解説＆切り返し時のエッセンス」を出力構成通りに一発で作成してください。
@@ -440,6 +454,8 @@
 ■ 追加の厳守ルール
 ・HP情報とCSV（台本）情報の扱いに関する徹底分離：ウェブ検索で得た情報は「商材の本質を深く理解するための解説」としてのみ参考にすること。
 ・「切返し時に使える訴求ポイント」には、ウェブ検索にしか載っていない独自の強みやキーワードを勝手に盛り込むのは【完全NG】。CSV内にある情報のみをベースに直感的で短いフレーズに最適化すること。
+・「【文字数目安：〇〇文字以内】」のような指示用のテキスト・メタ情報は出力内に【一切出力しない】こと。
+・切り返し文は長文のトーク例ではなく、電話口でパッと見て一瞬で口に出せる「同調＋損失回避＋短めのメリット」を簡潔にまとめて出力すること。
 ・前置きの挨拶や文章は一切不要。「1. 💡 何を勧める？メリットは？」からすぐに出力を開始すること。
 
 出力構成
@@ -447,28 +463,25 @@
 <h1>🏢 クライアント：${clientName}</h1>
 
 ### 1. 💡 何を勧める？メリットは？
-【文字数目安：250文字以内】
-短くシンプルに解説。架電者が商材の仕組みや顧客が抱えているであろう一般的な課題点と解決策及びメリットを直感的に理解できるよう、絵文字と記号を使ったシンプルな関係図、またはMarkdownのテーブル機能で商材の構造を視覚的に表現。
+短くシンプルに解説。架電者が商材の仕組みや顧客が抱えているであろう一般的な課題点と解決策及びメリットを直感的に理解できるよう、絵文字と記号を使ったシンプルな関係図、またはMarkdownのテーブル機能で商材の構造を視覚的に表現（250文字以内目安）。
 
 ### 2.⏰ なぜ「今」？
-【文字数目安：250文字以内】
-損失回避バイアスを用い「後回しにすると損をするかも」「今聞いておかないとマズイかも」と緊急性を感じさせる理由を、端的に、1〜2文で提示してください。
+損失回避バイアスを用い「後回しにすると損をするかも」「今聞いておかないとマズイかも」と緊急性を感じさせる理由を、端的に、1〜2文で提示してください（250文字以内目安）。
 
 ### 3．🛡️切返し時に使える訴求ポイント
 「興味ない」「間に合っている」「他社を使っている」などの拒否への対応を3パターン作成。
-・【訴求ポイント】：同調しながらも損失回避バイアスを用い、現状維持のリスクをそれとなく提示しそれに対するメリットを提示。100字程度。
+同調しながらも損失回避バイアスを用い、現状維持のリスクとそれに対するメリットを短い文章（80〜100文字程度）で分かりやすく提示してください。
 `;
         const userPrompt = "【リスト名（ターゲット属性）】\n" + listName + "\n\n【CSVデータ】\n" + currentCsvData;
 
         try {
-          // バックエンド（GAS）を介さず、直接APIを呼び出す
           generatedScriptContent = await callGeminiAPI(systemPrompt, userPrompt);
           renderResult(generatedScriptContent);
         } catch (error) {
           loading.style.display = 'none';
           submitBtn.disabled = false;
           submitBtn.textContent = '解説シートを作成する';
-          output.innerHTML = '<p style="color:red; font-weight:bold;">API呼び出しエラー: ' + error.message + '</p>';
+          output.innerHTML = '<p style="color:red; font-weight:bold;">エラー: ' + error.message + '</p>';
           resultContainer.style.display = 'block';
         }
       };
@@ -486,7 +499,6 @@
       submitBtn.disabled = false;
       submitBtn.textContent = '解説シートを作成する';
       
-      // Markdownパースと独自タグの置換
       let htmlContent = marked.parse(resultText);
       htmlContent = htmlContent.replace(/\[info\]/g, '<span class="tag-info">[info]</span>');
       htmlContent = htmlContent.replace(/\[title\]/g, '<span class="tag-title">[title]</span>');
@@ -511,7 +523,6 @@
       bubbleDiv.className = 'message-bubble';
       
       if (sender === 'bot') {
-         // Botからの返答はMarkdownとしてパース
          bubbleDiv.innerHTML = marked.parse(text);
       } else {
          bubbleDiv.textContent = text;
@@ -538,16 +549,16 @@
       sendBtn.disabled = true;
       sendBtn.textContent = '...';
 
-      // Q&A用のシステムプロンプト
       const qaSystemPrompt = `
-あなたは優秀なテレアポの台本を作ったクライアントの営業担当です。
-以下の【台本・企業データ】および【作成済み解説シート】の文脈を踏まえ、架電者をトレーニングするにあたってディレクターからの質問に対して、具体的で実践的な回答してください。
+あなたは優秀なテレアポディレクター（SV）です。
+架電者からの質問に対し、結論から先に答えて、要点を絞った簡潔でスマートな文章（100〜150文字程度）で回答してください。
+装飾用の独自タグ（[info]や[red]など）や過剰な箇条書きは使わず、自然で読みやすい文章にしてください。
 `;
       const qaUserPrompt = `
-【台本・企業データ】
+【参考：台本データ】
 ${currentCsvData}
 
-【作成済み解説シート】
+【参考：解説シート】
 ${generatedScriptContent}
 
 【架電者からの質問】
@@ -555,7 +566,6 @@ ${text}
 `;
 
       try {
-        // Q&Aも直接APIを呼び出す
         const responseText = await callGeminiAPI(qaSystemPrompt, qaUserPrompt);
         appendMessage('bot', responseText);
       } catch (error) {
