@@ -8,17 +8,17 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     body { 
-      font-family: 'Helvetica Neue', Arial, sans-serif; 
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; 
       padding: 0;
       margin: 0;
-      background-color: #ffffff; 
+      background-color: #f8fafc; 
       color: #333;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
     }
     .container { 
-      max-width: 800px; 
+      max-width: 850px; 
       margin: 0 auto; 
       padding: 40px 20px; 
       flex: 1;
@@ -53,16 +53,17 @@
       width: 100%; 
       padding: 12px; 
       box-sizing: border-box; 
-      border: 1px solid #e5e7eb; 
-      border-radius: 4px; 
+      border: 1px solid #cbd5e1; 
+      border-radius: 6px; 
       font-size: 14px;
       color: #374151;
+      background-color: #fff;
     }
     input[type="text"]::placeholder, input[type="password"]::placeholder {
       color: #9ca3af;
     }
     input[type="file"] {
-      background-color: #f9fafb;
+      background-color: #fff;
       cursor: pointer;
     }
 
@@ -77,9 +78,9 @@
       font-weight: bold;
     }
 
-    /* セキュリティ設定エリア（GitHub共有用） */
+    /* セキュリティ設定エリア */
     .settings-panel {
-      background-color: #f8fafc;
+      background-color: #ffffff;
       border: 1px dashed #cbd5e1;
       padding: 15px;
       border-radius: 6px;
@@ -109,25 +110,26 @@
       cursor: pointer; 
       transition: background 0.2s;
       margin-bottom: 30px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     button.main-btn:hover { background-color: #1d4ed8; }
     button.main-btn:disabled { background-color: #93c5fd; cursor: not-allowed; }
 
     /* コンテンツエリア */
     .content-area {
-      border: 1px solid #e5e7eb;
+      border: 1px solid #e2e8f0;
       padding: 40px;
       min-height: 300px;
       background-color: #ffffff;
-      border-radius: 6px;
+      border-radius: 8px;
       position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     /* 区切り線・チャットタイトル */
     .section-divider {
       border: 0;
-      border-top: 2px dashed #e5e7eb;
+      border-top: 2px dashed #e2e8f0;
       margin: 50px 0 30px 0;
     }
     .chat-title {
@@ -140,7 +142,7 @@
       font-weight: bold;
     }
 
-    /* 初期状態（プレースホルダー） */
+    /* 初期状態 */
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -170,12 +172,12 @@
     /* 生成された台本ナビのデザイン */
     .output-content h1 { 
       text-align: center; 
-      color: #111; 
+      color: #0f172a; 
       font-size: 22px; 
       margin-bottom: 30px; 
     }
     .output-content h3 {
-      background-color: #f8fafc;
+      background-color: #f1f5f9;
       padding: 12px 15px;
       border-left: 6px solid #2563eb;
       margin-top: 35px;
@@ -184,19 +186,58 @@
       color: #1e293b;
     }
     .output-content p { line-height: 1.8; font-size: 15px; margin-bottom: 15px; }
+
+    /* ★テーブルのスタイリング★ */
     .output-content table {
-      width: 100%; border-collapse: collapse; margin: 20px 0;
+      width: 100%; 
+      border-collapse: collapse; 
+      margin: 25px 0;
       background-color: #ffffff;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .output-content th, .output-content td {
-      border: 1px solid #e2e8f0; padding: 12px; text-align: left;
+    .output-content th { 
+      background-color: #2563eb; 
+      color: #ffffff; 
+      font-weight: bold; 
+      text-align: center;
+      padding: 12px;
+      font-size: 15px;
     }
-    .output-content th { background-color: #f1f5f9; font-weight: bold; color: #334155; }
-    .output-content hr { border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0; }
-    
-    .tag-info { background-color: #e0f2fe; color: #0284c7; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-right: 5px;}
-    .tag-title { background-color: #fef9c3; color: #a16207; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-right: 5px;}
-    .tag-red { color: #ef4444; font-weight: bold; }
+    .output-content td {
+      border: 1px solid #e2e8f0; 
+      padding: 14px; 
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .output-content tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    /* ★マーカー・ハイライト機能★ */
+    mark, .highlight-yellow {
+      background-color: #fef08a;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    .highlight-red {
+      background-color: #fecdd3;
+      color: #9f1239;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    .highlight-green {
+      background-color: #dcfce7;
+      color: #166534;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
 
     /* Q&A チャット UI */
     #qa-content {
@@ -231,11 +272,10 @@
       border-bottom-right-radius: 0;
     }
     .message.bot .message-bubble {
-      background-color: #f3f4f6;
+      background-color: #f1f5f9;
       color: #1f2937;
       border-bottom-left-radius: 0;
     }
-    /* チャット内のMarkdown対応 */
     .message.bot .message-bubble p { margin: 0 0 10px 0; }
     .message.bot .message-bubble p:last-child { margin: 0; }
     
@@ -262,7 +302,6 @@
     
     <div id="errorMessage" class="error-message"></div>
 
-    <!-- GitHub等で共有する際、ソースコードに直書きせずに画面から入力させる -->
     <div class="settings-panel">
       <label for="apiKeyInput">
         🔑 Gemini API キー
@@ -283,7 +322,6 @@
     
     <button onclick="processRequest()" id="submitBtn" class="main-btn">解説シートを作成する</button>
     
-    <!-- コンテンツ表示エリア -->
     <div class="content-area">
       <div id="loading"><span class="spinner"></span>ウェブ検索を実行し、最新情報で台本を分析しています...（約10〜20秒）</div>
       
@@ -298,21 +336,15 @@
         <p>CSVとリスト名を入力して「作成」を押すと、<br>ここに解説シートが表示されます。</p>
       </div>
 
-      <!-- 生成結果とQ&Aのコンテナ（1画面構成） -->
       <div id="result-container" style="display: none;">
         
-        <!-- 解説シート -->
         <div id="output" class="output-content"></div>
 
-        <!-- 区切り線 -->
         <hr class="section-divider">
 
-        <!-- Q&Aエリア -->
         <h3 class="chat-title"><span style="color: #ef4444;">❓</span> ナビへのQ&A</h3>
         <div id="qa-content">
-          <div class="chat-messages" id="chatMessages">
-            <!-- メッセージはJSで動的に挿入されます -->
-          </div>
+          <div class="chat-messages" id="chatMessages"></div>
           <div class="chat-input-area">
             <input type="text" id="chatInput" placeholder="台本のここが分からない、この言葉どういう意味？、〇〇と言われたらどう返す？等..." onkeypress="handleKeyPress(event)">
             <button onclick="sendQuestion()" class="main-btn" id="sendBtn">送信</button>
@@ -331,7 +363,6 @@
     let generatedScriptContent = "";
     let currentCsvData = "";
 
-    // ページロード時にローカルストレージからAPIキーを読み込む
     window.addEventListener('DOMContentLoaded', () => {
       const savedApiKey = localStorage.getItem('gemini_api_key');
       if (savedApiKey) {
@@ -455,7 +486,7 @@
 ・HP情報とCSV（台本）情報の扱いに関する徹底分離：ウェブ検索で得た情報は「商材の本質を深く理解するための解説」としてのみ参考にすること。
 ・「切返し時に使える訴求ポイント」には、ウェブ検索にしか載っていない独自の強みやキーワードを勝手に盛り込むのは【完全NG】。CSV内にある情報のみをベースに直感的で短いフレーズに最適化すること。
 ・「【文字数目安：〇〇文字以内】」のような指示用のテキスト・メタ情報は出力内に【一切出力しない】こと。
-・切り返し文は長文のトーク例ではなく、電話口でパッと見て一瞬で口に出せる「同調＋損失回避＋短めのメリット」を簡潔にまとめて出力すること。
+・切り返し文は長文のトーク例ではなく、電話口でパッと見て一瞬で口に出せる「同調＋損失回避＋短めのメリット」を簡潔にまとめて出力すること（80〜100文字程度）。
 ・前置きの挨拶や文章は一切不要。「1. 💡 何を勧める？メリットは？」からすぐに出力を開始すること。
 
 出力構成
@@ -463,12 +494,13 @@
 <h1>🏢 クライアント：${clientName}</h1>
 
 ### 1. 💡 何を勧める？メリットは？
-短くシンプルに解説。架電者が商材の仕組みや顧客が抱えているであろう一般的な課題点と解決策及びメリットを直感的に理解できるよう、絵文字と記号を使ったシンプルな関係図、またはMarkdownのテーブル機能で商材の構造を視覚的に表現（250文字以内目安）。
+商材の仕組みやソリューションの要点を1〜2文で短く解説した上で、架電者が直感的に理解できるよう、商材や台本の内容に最も適したフォーマットで【Markdownのテーブル（表）】を作成してください（例: Before/After比較表、課題と解決一覧、メリットまとめ等、最もわかりやすい表構造をフレキシブルに選択すること）。
+架電者が一目でポイントを掴めるよう、表内の重要ワードには <mark>黄色マーカー</mark> や <span class="highlight-green">緑マーカー</span> などのHTMLタグを適宜使用して着色してください。
 
-### 2.⏰ なぜ「今」？
-損失回避バイアスを用い「後回しにすると損をするかも」「今聞いておかないとマズイかも」と緊急性を感じさせる理由を、端的に、1〜2文で提示してください（250文字以内目安）。
+### 2. ⏰ なぜ「今」？
+損失回避バイアスを用い「後回しにすると損をするかも」「今聞いておかないとマズイかも」と緊急性を感じさせる理由を、端的に、1〜2文で提示してください。強調したい部分には適宜 <mark>マーカー</mark> を使用してください。
 
-### 3．🛡️切返し時に使える訴求ポイント
+### 3. 🛡️ 切返し時に使える訴求ポイント
 「興味ない」「間に合っている」「他社を使っている」などの拒否への対応を3パターン作成。
 同調しながらも損失回避バイアスを用い、現状維持のリスクとそれに対するメリットを短い文章（80〜100文字程度）で分かりやすく提示してください。
 `;
@@ -500,10 +532,6 @@
       submitBtn.textContent = '解説シートを作成する';
       
       let htmlContent = marked.parse(resultText);
-      htmlContent = htmlContent.replace(/\[info\]/g, '<span class="tag-info">[info]</span>');
-      htmlContent = htmlContent.replace(/\[title\]/g, '<span class="tag-title">[title]</span>');
-      htmlContent = htmlContent.replace(/\[red\](.*?)\[\/red\]/g, '<span class="tag-red">$1</span>'); 
-      
       output.innerHTML = htmlContent;
       resultContainer.style.display = 'block';
     }
@@ -550,9 +578,8 @@
       sendBtn.textContent = '...';
 
       const qaSystemPrompt = `
-あなたは優秀なテレアポディレクター（SV）です。
-架電者からの質問に対し、結論から先に答えて、要点を絞った簡潔でスマートな文章（100〜150文字程度）で回答してください。
-装飾用の独自タグ（[info]や[red]など）や過剰な箇条書きは使わず、自然で読みやすい文章にしてください。
+あなたは優秀なテレアポインターをトレーニングするディレクター（SV）です。
+アポインターからの台本についての質問に対し、結論から先に答えて、要点を絞った簡潔でスマートな文章（100〜150文字程度）で回答してください。
 `;
       const qaUserPrompt = `
 【参考：台本データ】
